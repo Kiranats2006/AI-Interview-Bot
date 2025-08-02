@@ -3,6 +3,11 @@ const { startInterview, continueInterview, generateFeedback } = require('../cont
 
 const router = express.Router();
 
+// Test route
+router.get('/test', (req, res) => {
+  res.json({ message: 'Interview routes working!' });
+});
+
 // POST /api/interview/start
 router.post('/start', startInterview);
 
