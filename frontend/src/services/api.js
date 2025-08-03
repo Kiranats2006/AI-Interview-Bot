@@ -1,51 +1,37 @@
-const API_BASE_URL = 'http://localhost:5000/api/interview';
+// services/api.js
+const API_BASE_URL = 'https://ai-interview-bot-ywme.onrender.com';
 
 export const apiService = {
-  async startInterview(role) {
-    const response = await fetch(`${API_BASE_URL}/start`, {
+  startInterview: async (role) => {
+    const response = await fetch(`${API_BASE_URL}/api/interview/start`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ role }),
     });
-    
-    if (!response.ok) {
-      throw new Error('Failed to start interview');
-    }
-    
     return response.json();
   },
 
-  async continueInterview(role, history, answer) {
-    const response = await fetch(`${API_BASE_URL}/continue`, {
+  continueInterview: async (role, history, answer) => {
+    const response = await fetch(`${API_BASE_URL}/api/interview/continue`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ role, history, answer }),
     });
-    
-    if (!response.ok) {
-      throw new Error('Failed to continue interview');
-    }
-    
     return response.json();
   },
 
-  async generateFeedback(role, history) {
-    const response = await fetch(`${API_BASE_URL}/feedback`, {
+  generateFeedback: async (role, history) => {
+    const response = await fetch(`${API_BASE_URL}/api/interview/feedback`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ role, history }),
     });
-    
-    if (!response.ok) {
-      throw new Error('Failed to generate feedback');
-    }
-    
     return response.json();
-  }
+  },
 };

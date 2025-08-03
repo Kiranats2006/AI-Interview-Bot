@@ -1,7 +1,7 @@
+import Setup from '../../frontend/src/components/Setup';
+import Interview from '../../frontend/src/components/Interview';
+import Feedback from '../../frontend/src/components/Feedback';
 import React, { useState } from 'react';
-import Setup from './components/Setup';
-import Interview from './components/Interview';
-import Feedback from './components/Feedback';
 
 function App() {
   const [step, setStep] = useState('setup');
