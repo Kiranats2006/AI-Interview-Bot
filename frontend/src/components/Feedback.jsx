@@ -6,6 +6,8 @@ function Feedback({ role, messages, onRestart }) {
   const [feedback, setFeedback] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [score, setScore] = useState(0);
+  const [showReview, setShowReview] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
 
   useEffect(() => {
     generateFeedback();
@@ -26,6 +28,89 @@ function Feedback({ role, messages, onRestart }) {
     
     setIsLoading(false);
   };
+
+  const handleReviewAnswers = () => {
+    setShowReview(!showReview);
+  };
+
+  const generatePDFContent = () => {
+    const date = new Date().toLocaleDateString();
+    const time = new Date().toLocaleTimeString();
+    
+    let content = `INTERVIEW FEEDBACK REPORT\n\n`;
+    content += `Role: ${role}\n`;
+    content += `Date: ${date}\n`;
+    content += `Time: ${time}\n`;
+    content += `Score: ${score}/100\n\n`;
+    content += `DETAILED FEEDBACK:\n`;
+    content += `${feedback}\n\n`;
+    content += `INTERVIEW CONVERSATION:\n`;
+    content += `${'='.repeat(50)}\n\n`;
+    
+    messages.forEach((message, index) => {
+      content += `${message.type.toUpperCase()}: ${message.content}\n\n`;
+    });
+    
+    return content;
+  };
+
+  const handleDownloadReport = async () => {
+    setIsDownloading(true);
+    
+    try {
+      const content = generatePDFContent();
+      
+      // Create a blob with the content
+      const blob = new Blob([content], { type: 'text/plain' });
+      const url = window.URL.createObjectURL(blob);
+      
+      // Create a temporary link element and trigger download
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `interview_report_${role.replace(/\s+/g, '_')}_${new Date().getTime()}.txt`;
+      document.body.appendChild(link);
+      link.click();
+      
+      // Cleanup
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      
+      // Show success message
+      alert('Report downloaded successfully!');
+    } catch (error) {
+      console.error('Download failed:', error);
+      alert('Failed to download report. Please try again.');
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
+  const parseAnswersAndQuestions = () => {
+    const parsed = [];
+    let currentQuestion = '';
+    let currentAnswer = '';
+    
+    messages.forEach((message, index) => {
+      if (message.type === 'interviewer') {
+        if (currentQuestion && currentAnswer) {
+          parsed.push({ question: currentQuestion, answer: currentAnswer });
+        }
+        currentQuestion = message.content;
+        currentAnswer = '';
+      } else if (message.type === 'user') {
+        currentAnswer = message.content;
+      }
+    });
+    
+    // Add the last Q&A pair if it exists
+    if (currentQuestion && currentAnswer) {
+      parsed.push({ question: currentQuestion, answer: currentAnswer });
+    }
+    
+    return parsed;
+  };
+
+  const qaData = parseAnswersAndQuestions();
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 p-4 flex items-center">
@@ -107,6 +192,40 @@ function Feedback({ role, messages, onRestart }) {
                     </ul>
                   </div>
                 </div>
+
+                {/* Interview Review Section */}
+                {showReview && (
+                  <div className="mt-10">
+                    <h3 className="text-xl font-semibold text-gray-800 mb-6 flex items-center">
+                      <span className="mr-2 text-indigo-600">🔍</span>
+                      Interview Review
+                    </h3>
+                    <div className="space-y-6">
+                      {qaData.map((qa, index) => (
+                        <div key={index} className="bg-gradient-to-r from-gray-50 to-blue-50 p-6 rounded-lg border border-gray-200">
+                          <div className="mb-4">
+                            <h4 className="font-semibold text-gray-800 mb-2 flex items-center">
+                              <span className="mr-2 text-blue-600">❓</span>
+                              Question {index + 1}
+                            </h4>
+                            <p className="text-gray-700 bg-white p-3 rounded border border-blue-100">
+                              {qa.question}
+                            </p>
+                          </div>
+                          <div>
+                            <h4 className="font-semibold text-gray-800 mb-2 flex items-center">
+                              <span className="mr-2 text-green-600">💬</span>
+                              Your Answer
+                            </h4>
+                            <p className="text-gray-700 bg-white p-3 rounded border border-green-100">
+                              {qa.answer || 'No answer provided'}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </>
           )}
@@ -119,11 +238,29 @@ function Feedback({ role, messages, onRestart }) {
               >
                 Start New Interview
               </button>
-              <button className="px-8 py-3 bg-white border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 shadow-sm transition-all duration-200 font-medium">
-                Review Answers
+              <button 
+                onClick={handleReviewAnswers}
+                className="px-8 py-3 bg-white border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 shadow-sm transition-all duration-200 font-medium flex items-center justify-center"
+              >
+                <span className="mr-2">🔍</span>
+                {showReview ? 'Hide Review' : 'Review Answers'}
               </button>
-              <button className="px-8 py-3 bg-white border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 shadow-sm transition-all duration-200 font-medium">
-                Download Report
+              <button 
+                onClick={handleDownloadReport}
+                disabled={isDownloading}
+                className="px-8 py-3 bg-white border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 shadow-sm transition-all duration-200 font-medium flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isDownloading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-gray-600 mr-2"></div>
+                    Downloading...
+                  </>
+                ) : (
+                  <>
+                    <span className="mr-2">📄</span>
+                    Download Report
+                  </>
+                )}
               </button>
             </div>
           </div>

@@ -1,10 +1,13 @@
 const geminiService = require('../services/geminiService');
 
+// Track conversation state (in-memory, for production use a database)
+const interviewSessions = new Map();
+
 const startInterview = async (req, res) => {
   try {
     console.log('Starting interview for role:', req.body.role);
     
-    const { role } = req.body;
+    const { role, userId } = req.body;
 
     if (!role) {
       return res.status(400).json({
@@ -13,6 +16,8 @@ const startInterview = async (req, res) => {
       });
     }
 
+    const sessionId = userId || Date.now().toString();
+    
     const prompt = `You are an experienced technical interviewer conducting a professional interview for a ${role} position.
 
 Instructions:
@@ -25,12 +30,23 @@ Start the interview now.`;
 
     const response = await geminiService.generateResponse(prompt);
 
+    // Initialize session
+    interviewSessions.set(sessionId, {
+      role,
+      history: [
+        { role: 'system', content: prompt },
+        { role: 'assistant', content: response }
+      ],
+      questionCount: 1
+    });
+
     console.log('Interview started successfully');
 
     res.json({
       success: true,
       message: response,
-      questionNumber: 1
+      questionNumber: 1,
+      sessionId
     });
   } catch (error) {
     console.error('Error starting interview:', error.message);
@@ -44,38 +60,57 @@ Start the interview now.`;
 const continueInterview = async (req, res) => {
   try {
     console.log('Continuing interview');
+    const { sessionId, answer } = req.body;
 
-    const { role, history, answer } = req.body;
-
-    if (!role || !answer) {
+    if (!sessionId || !answer) {
       return res.status(400).json({
         success: false,
-        error: 'Role and answer are required'
+        error: 'Session ID and answer are required'
       });
     }
 
-    const prompt = `You are interviewing for a ${role} position.
+    const session = interviewSessions.get(sessionId);
+    if (!session) {
+      return res.status(404).json({
+        success: false,
+        error: 'Interview session not found'
+      });
+    }
+
+    // Add user's answer to history
+    session.history.push({ role: 'user', content: answer });
+
+    // Prepare conversation context
+    const conversationContext = session.history
+      .filter(msg => msg.role !== 'system')
+      .map(msg => `${msg.role === 'user' ? 'Candidate' : 'Interviewer'}: ${msg.content}`)
+      .join('\n\n');
+
+    const prompt = `You are interviewing for a ${session.role} position.
 
 Previous conversation:
-${history || 'No previous history'}
-
-Candidate's latest answer: ${answer}
+${conversationContext}
 
 As the interviewer:
-1. Provide brief feedback on their answer (1-2 sentences)
-2. Ask the next relevant technical question for ${role}
-3. Keep it professional and engaging
-4. Keep your response under 150 words
+1. Provide brief, specific feedback on their answer (1 sentence)
+2. Ask the next relevant technical question
+3. Keep responses professional and under 150 words
+4. End your response with a clear question
 
-Respond as the interviewer:`;
+Respond now as the interviewer:`;
 
     const response = await geminiService.generateResponse(prompt);
+
+    // Update session
+    session.history.push({ role: 'assistant', content: response });
+    session.questionCount += 1;
 
     console.log('Interview continued successfully');
 
     res.json({
       success: true,
-      message: response
+      message: response,
+      questionNumber: session.questionCount
     });
   } catch (error) {
     console.error('Error continuing interview:', error.message);
@@ -89,19 +124,31 @@ Respond as the interviewer:`;
 const generateFeedback = async (req, res) => {
   try {
     console.log('Generating feedback');
+    const { sessionId } = req.body;
 
-    const { role, history } = req.body;
-
-    if (!role || !history) {
+    if (!sessionId) {
       return res.status(400).json({
         success: false,
-        error: 'Role and history are required'
+        error: 'Session ID is required'
       });
     }
 
-    const prompt = `Based on this interview for a ${role} position:
+    const session = interviewSessions.get(sessionId);
+    if (!session) {
+      return res.status(404).json({
+        success: false,
+        error: 'Interview session not found'
+      });
+    }
 
-${history}
+    const conversationContext = session.history
+      .filter(msg => msg.role !== 'system')
+      .map(msg => `${msg.role === 'user' ? 'Candidate' : 'Interviewer'}: ${msg.content}`)
+      .join('\n\n');
+
+    const prompt = `Based on this interview for a ${session.role} position:
+
+${conversationContext}
 
 Provide detailed feedback in this exact format:
 
