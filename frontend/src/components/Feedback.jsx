@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { apiService } from '../services/api';
 
-function Feedback({ role, messages, onRestart }) {
+function Feedback({ role, messages, onRestart, sessionId }) {  // Add sessionId prop
   const [feedback, setFeedback] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [score, setScore] = useState(0);
@@ -11,23 +11,33 @@ function Feedback({ role, messages, onRestart }) {
 
   useEffect(() => {
     generateFeedback();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const generateFeedback = async () => {
-    const history = messages.map(m => `${m.type}: ${m.content}`).join('\n');
+// In Feedback.jsx
+const generateFeedback = async () => {
+  try {
+    // Get sessionId from localStorage
+    const sessionId = localStorage.getItem('interviewSessionId');
     
-    try {
-      const data = await apiService.generateFeedback(role, history);
-      setFeedback(data.feedback);
-      setScore(Math.floor(Math.random() * 30) + 70); // Random score between 70-100 for demo
-    } catch (error) {
-      setFeedback('Great job completing the interview! You showed good problem-solving skills and communication. Keep practicing to improve further.');
-      setScore(75);
+    if (!sessionId) {
+      throw new Error('No interview session found');
     }
+
+    console.log('Using sessionId:', sessionId); // Debug log
+    const data = await apiService.generateFeedback(sessionId);
+    setFeedback(data.feedback);
+    setScore(Math.floor(Math.random() * 30) + 70);
     
+    // Clear the sessionId after use if needed
+    localStorage.removeItem('interviewSessionId');
+  } catch (error) {
+    console.error('Full error details:', error);
+    setFeedback('Great job completing the interview! You showed good problem-solving skills...');
+    setScore(75);
+  } finally {
     setIsLoading(false);
-  };
+  }
+};
 
   const handleReviewAnswers = () => {
     setShowReview(!showReview);
