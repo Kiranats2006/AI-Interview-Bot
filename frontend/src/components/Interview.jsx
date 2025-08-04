@@ -91,9 +91,8 @@ function Interview({ role, messages, setMessages, onComplete }) {
       if (newCount >= 6) {
         setTimeout(() => {
           // Store session before completing
-          localStorage.setItem('feedbackSessionId', sessionId);
           localStorage.removeItem('currentInterviewSession');
-          onComplete();
+          handleComplete();
         }, 1500);
       }
     } catch (error) {
@@ -120,8 +119,7 @@ function Interview({ role, messages, setMessages, onComplete }) {
       // Still complete after 6 questions even if errors occur
       if (questionCount >= 5) {
         setTimeout(() => {
-          localStorage.setItem('feedbackSessionId', sessionId);
-          onComplete();
+          handleComplete();
         }, 2000);
       } else {
         setQuestionCount(prev => prev + 1);
@@ -130,6 +128,12 @@ function Interview({ role, messages, setMessages, onComplete }) {
       setIsLoading(false);
     }
   };
+
+    const handleComplete = () => {
+      localStorage.setItem('interviewSessionId', sessionId);
+      localStorage.removeItem('currentInterviewSession');
+      onComplete(sessionId);
+    };
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">

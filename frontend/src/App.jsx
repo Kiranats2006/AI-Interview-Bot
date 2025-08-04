@@ -7,13 +7,15 @@ function App() {
   const [step, setStep] = useState('setup');
   const [selectedRole, setSelectedRole] = useState('');
   const [messages, setMessages] = useState([]);
+  const [currentSessionId, setCurrentSessionId] = useState(null);
 
   const handleStart = (role) => {
     setSelectedRole(role);
     setStep('interview');
   };
 
-  const handleComplete = () => {
+  const handleInterviewComplete = (sessionId) => {
+    setCurrentSessionId(sessionId);
     setStep('feedback');
   };
 
@@ -32,7 +34,7 @@ function App() {
           role={selectedRole}
           messages={messages}
           setMessages={setMessages}
-          onComplete={handleComplete}
+          onComplete={handleInterviewComplete}
         />
       )}
       
@@ -41,6 +43,7 @@ function App() {
           role={selectedRole}
           messages={messages}
           onRestart={handleRestart}
+          sessionId={currentSessionId}
         />
       )}
     </div>

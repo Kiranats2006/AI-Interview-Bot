@@ -13,25 +13,24 @@ function Feedback({ role, messages, onRestart, sessionId }) {  // Add sessionId 
     generateFeedback();
   }, []);
 
-// In Feedback.jsx
 const generateFeedback = async () => {
+  setIsLoading(true);
   try {
-    // Get sessionId from localStorage
-    const sessionId = localStorage.getItem('interviewSessionId');
+    const feedbackSessionId = sessionId || localStorage.getItem('interviewSessionId');
     
-    if (!sessionId) {
+    if (!feedbackSessionId) {
       throw new Error('No interview session found');
     }
 
-    console.log('Using sessionId:', sessionId); // Debug log
-    const data = await apiService.generateFeedback(sessionId);
-    setFeedback(data.feedback);
-    setScore(Math.floor(Math.random() * 30) + 70);
+    const data = await apiService.generateFeedback(feedbackSessionId);
     
-    // Clear the sessionId after use if needed
+    setFeedback(data.feedback || 'Great job completing the interview!');
+    setScore(data.score || Math.floor(Math.random() * 30) + 70);
+    
+    // Clear the sessionId after use
     localStorage.removeItem('interviewSessionId');
   } catch (error) {
-    console.error('Full error details:', error);
+    console.error('Feedback error:', error);
     setFeedback('Great job completing the interview! You showed good problem-solving skills...');
     setScore(75);
   } finally {
