@@ -1,4 +1,4 @@
-const geminiService = require('../services/geminiService');
+const geminiService = require('../../backend/services/geminiService');
 
 // Track conversation state (in-memory, for production use a database)
 const interviewSessions = new Map();
@@ -6,7 +6,7 @@ const interviewSessions = new Map();
 const startInterview = async (req, res) => {
   try {
     console.log('Starting interview for role:', req.body.role);
-    
+
     const { role, userId } = req.body;
 
     if (!role) {
@@ -17,7 +17,7 @@ const startInterview = async (req, res) => {
     }
 
     const sessionId = userId || Date.now().toString();
-    
+
     const prompt = `You are an experienced technical interviewer conducting a professional interview for a ${role} position.
 
 Instructions:
@@ -39,6 +39,9 @@ Start the interview now.`;
       ],
       questionCount: 1
     });
+
+    // Debug: Log current session keys
+    console.log('Session created. Current sessions:', Array.from(interviewSessions.keys()));
 
     console.log('Interview started successfully');
 
@@ -68,6 +71,10 @@ const continueInterview = async (req, res) => {
         error: 'Session ID and answer are required'
       });
     }
+
+    // Debug: Log current session keys
+    console.log('Looking for session:', sessionId);
+    console.log('Current sessions:', Array.from(interviewSessions.keys()));
 
     const session = interviewSessions.get(sessionId);
     if (!session) {
@@ -132,6 +139,10 @@ const generateFeedback = async (req, res) => {
         error: 'Session ID is required'
       });
     }
+
+    // Debug: Log current session keys
+    console.log('Looking for session:', sessionId);
+    console.log('Current sessions:', Array.from(interviewSessions.keys()));
 
     const session = interviewSessions.get(sessionId);
     if (!session) {
