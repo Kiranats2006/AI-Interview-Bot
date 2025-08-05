@@ -11,9 +11,8 @@ function Feedback({ role, messages, onRestart, sessionId }) {  // Add sessionId 
 
   useEffect(() => {
     generateFeedback();
-  }, [generateFeedback]);
+  }, []);
 
-// eslint-disable-next-line react-hooks/exhaustive-deps
 const generateFeedback = async () => {
   setIsLoading(true);
   try {
